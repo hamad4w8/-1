@@ -4,59 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لعبة المافيا</title>
-    <!-- أضف هذه السطور بعد <title> -->
-<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
-
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
+    
     <style>
-        /* أضف هذه الفئات في الـ CSS */
-.player.mafia {
-    border-color: #ff0000;
-    background-color: rgba(255, 0, 0, 0.15);
-    color: #ff6666;
-}
-
-.player.doctor {
-    border-color: #00ff00;
-    background-color: rgba(0, 255, 0, 0.15);
-    color: #66ff66;
-}
-
-.player.sheriff {
-    border-color: #0000ff;
-    background-color: rgba(0, 0, 255, 0.15);
-    color: #6666ff;
-}
-
-.player.citizen {
-    border-color: #aaaaaa;
-    background-color: rgba(170, 170, 170, 0.15);
-    color: #cccccc;
-}
-
-.role-reveal.mafia {
-    border-color: #ff0000;
-    background-color: rgba(255, 0, 0, 0.2);
-    box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
-}
-
-.role-reveal.doctor {
-    border-color: #00ff00;
-    background-color: rgba(0, 255, 0, 0.2);
-    box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
-}
-
-.role-reveal.sheriff {
-    border-color: #0000ff;
-    background-color: rgba(0, 0, 255, 0.2);
-    box-shadow: 0 0 20px rgba(0, 0, 255, 0.5);
-}
-
-.role-reveal.citizen {
-    border-color: #aaaaaa;
-    background-color: rgba(170, 170, 170, 0.2);
-    box-shadow: 0 0 20px rgba(170, 170, 170, 0.5);
-}
         * {
             box-sizing: border-box;
             margin: 0;
@@ -265,6 +217,25 @@
         .player.mafia {
             border-color: #ff0000;
             background-color: rgba(255, 0, 0, 0.1);
+            color: #ff6666;
+        }
+
+        .player.doctor {
+            border-color: #00ff00;
+            background-color: rgba(0, 255, 0, 0.1);
+            color: #66ff66;
+        }
+
+        .player.sheriff {
+            border-color: #0000ff;
+            background-color: rgba(0, 0, 255, 0.1);
+            color: #6666ff;
+        }
+
+        .player.citizen {
+            border-color: #aaaaaa;
+            background-color: rgba(170, 170, 170, 0.1);
+            color: #cccccc;
         }
         
         .role-reveal {
@@ -274,6 +245,30 @@
             border-radius: 10px;
             background-color: rgba(255, 0, 0, 0.1);
             border: 2px solid #ff0000;
+        }
+
+        .role-reveal.mafia {
+            border-color: #ff0000;
+            background-color: rgba(255, 0, 0, 0.2);
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+        }
+
+        .role-reveal.doctor {
+            border-color: #00ff00;
+            background-color: rgba(0, 255, 0, 0.2);
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+        }
+
+        .role-reveal.sheriff {
+            border-color: #0000ff;
+            background-color: rgba(0, 0, 255, 0.2);
+            box-shadow: 0 0 20px rgba(0, 0, 255, 0.5);
+        }
+
+        .role-reveal.citizen {
+            border-color: #aaaaaa;
+            background-color: rgba(170, 170, 170, 0.2);
+            box-shadow: 0 0 20px rgba(170, 170, 170, 0.5);
         }
         
         .role-name {
@@ -410,7 +405,7 @@
             <h1>غرفتك الجاهزة</h1>
             <p class="subtitle">شارك رمز الغرفة مع أصدقائك</p>
             <div class="room-code" id="roomCode">12345</div>
-            <p class="game-status">في انتظار اللاعبين...</p>
+            <p class="game-status" id="gameStatus">في انتظار اللاعبين...</p>
             <div class="player-list" id="hostPlayerList">
                 <!-- اللاعبون سيضافون هنا -->
             </div>
@@ -435,7 +430,7 @@
         <!-- الصفحة 6: كشف الشخصية -->
         <div id="page6" class="page">
             <h1>يا <span id="playerNameDisplay2"></span>، أنت:</h1>
-            <div class="role-reveal">
+            <div class="role-reveal" id="roleReveal">
                 <span id="playerRole" class="role-name">المواطن</span>
             </div>
             <button id="nextToNight" class="btn">التالي</button>
@@ -503,73 +498,99 @@
     </div>
 
     <script>
-        
-        
-        // 🔥 أضف هذا في بداية الـ <script> بعد المتغيرات
-
-
-// بيانات اللعبة
-let playerName = "";
-let playerRole = "";
-let roomCode = "";
-let players = [];
-let currentPage = 1;
-let gameState = {
-    mafiaChoice: "",
-    doctorChoice: "",
-    sheriffChoice: "",
-    votes: {},
-    isMafia: false
-};
-
-// 🔥🔥🔥 أضف هذا هنا: إعداد Firebase 🔥🔥🔥
-let database; // تعريف متغير database بشكل عام
-
-// كود Firebase - استبدل هذه القيم بقيمك
-const firebaseConfig = {
-    apiKey: "AIzaSyDummyKeyReplaceWithYours",
-    authDomain: "mafiagame-demo.firebaseapp.com",
-    databaseURL: "https://mafiagame-demo-default-rtdb.firebaseio.com",
-    projectId: "mafiagame-demo",
-    storageBucket: "mafiagame-demo.appspot.com",
-    messagingSenderId: "1234567890",
-    appId: "1:1234567890:web:abc123def456"
-};
-
-// تهيئة Firebase مرة واحدة فقط
-try {
-    if (typeof firebase !== 'undefined') {
-        firebase.initializeApp(firebaseConfig);
-        database = firebase.database();
-        console.log("✅ Firebase جاهز للاستخدام");
-    } else {
-        console.warn("⚠️ Firebase غير متوفر - تشغيل وضع تجريبي");
-        // تعريف دالة وهمية للـ database لتجنب الأخطاء
-        database = {
-            ref: () => ({ 
-                set: () => {}, 
-                on: () => {}, 
-                once: () => Promise.resolve({ val: () => null }),
-                update: () => {},
-                child: () => ({ set: () => {} }),
-                remove: () => {}
-            })
+        // ==================== بيانات اللعبة ====================
+        let playerName = "";
+        let playerRole = "";
+        let roomCode = "";
+        let players = [];
+        let currentPage = 1;
+        let gameState = {
+            mafiaChoice: "",
+            doctorChoice: "",
+            sheriffChoice: "",
+            votes: {},
+            isMafia: false
         };
-    }
-} catch (error) {
-    console.error("❌ خطأ في Firebase:", error);
-}
-// 🔥🔥🔥 نهاية إعداد Firebase 🔥🔥🔥
 
-// غيرها إلى:
-function generateRoles(playerCount) {
-    const roles = [];}
-    // ... باقي الكود
+        // ==================== قاعدة البيانات المحلية (بدون Firebase) ====================
+        let gameDatabase = {
+            rooms: {},
+            listeners: {},
+            
+            ref: function(path) {
+                const self = this;
+                
+                return {
+                    set: function(data) {
+                        console.log("💾 حفظ بيانات:", path, data);
+                        self.rooms[path] = JSON.parse(JSON.stringify(data));
+                        
+                        // إشعار جميع المستمعين بالتحديث
+                        setTimeout(() => {
+                            if (self.listeners[path]) {
+                                self.listeners[path].forEach(callback => {
+                                    callback({ val: () => self.rooms[path] });
+                                });
+                            }
+                        }, 100);
+                        return Promise.resolve();
+                    },
+                    
+                    update: function(data) {
+                        console.log("🔄 تحديث بيانات:", path, data);
+                        if (!self.rooms[path]) {
+                            self.rooms[path] = {};
+                        }
+                        Object.assign(self.rooms[path], data);
+                        
+                        setTimeout(() => {
+                            if (self.listeners[path]) {
+                                self.listeners[path].forEach(callback => {
+                                    callback({ val: () => self.rooms[path] });
+                                });
+                            }
+                        }, 100);
+                        return Promise.resolve();
+                    },
+                    
+                    on: function(event, callback) {
+                        if (!self.listeners[path]) {
+                            self.listeners[path] = [];
+                        }
+                        self.listeners[path].push(callback);
+                        console.log("👂 جاري الاستماع للتحديثات على:", path);
+                        
+                        // إرسال البيانات الحالية مباشرة
+                        if (self.rooms[path]) {
+                            setTimeout(() => {
+                                callback({ val: () => self.rooms[path] });
+                            }, 200);
+                        }
+                    },
+                    
+                    once: function(event) {
+                        return Promise.resolve({
+                            val: () => self.rooms[path] || null
+                        });
+                    },
+                    
+                    child: function(childPath) {
+                        return self.ref(path + '/' + childPath);
+                    },
+                    
+                    remove: function() {
+                        console.log("🗑️ حذف:", path);
+                        delete self.rooms[path];
+                        if (self.listeners[path]) {
+                            delete self.listeners[path];
+                        }
+                        return Promise.resolve();
+                    }
+                };
+            }
+        };
 
-       
-        
-      
-        // العناصر
+        // ==================== العناصر ====================
         const pages = document.querySelectorAll('.page');
         const playerNameInput = document.getElementById('playerName');
         const saveNameBtn = document.getElementById('saveName');
@@ -582,6 +603,7 @@ function generateRoles(playerCount) {
         const playerNameDisplay = document.getElementById('playerNameDisplay');
         const playerNameDisplay2 = document.getElementById('playerNameDisplay2');
         const playerRoleDisplay = document.getElementById('playerRole');
+        const roleRevealElement = document.getElementById('roleReveal');
         const nextToRoleBtn = document.getElementById('nextToRole');
         const nextToNightBtn = document.getElementById('nextToNight');
         const startNightBtn = document.getElementById('startNight');
@@ -595,8 +617,175 @@ function generateRoles(playerCount) {
         const impostorNameDisplay = document.getElementById('impostorName');
         const newGameBtn = document.getElementById('newGame');
         const hostPlayerList = document.getElementById('hostPlayerList');
+        const gameStatusElement = document.getElementById('gameStatus');
+
+        // ==================== الدوال الأساسية ====================
         
-        // حفظ الاسم والانتقال للصفحة 2
+        // إنشاء أدوار بناءً على عدد اللاعبين
+        function generateRoles(playerCount) {
+            const roles = [];
+            
+            // واحد فقط مافيا
+            roles.push("المافيا");
+            
+            // واحد فقط دكتور
+            roles.push("الدكتور");
+            
+            // واحد فقط شايب
+            roles.push("الشايب");
+            
+            // الباقي كلهم مواطنين
+            for (let i = 3; i < playerCount; i++) {
+                roles.push("المواطن");
+            }
+            
+            return roles;
+        }
+
+        // تحديث قائمة اللاعبين
+        function updatePlayerList() {
+            hostPlayerList.innerHTML = "";
+            
+            players.forEach(player => {
+                const playerDiv = document.createElement('div');
+                playerDiv.className = 'player';
+                
+                // إضافة فئة حسب الدور إذا كان معروفاً
+                if (player === playerName && playerRole) {
+                    if (playerRole === "المافيا") {
+                        playerDiv.classList.add('mafia');
+                        playerDiv.textContent = player + " (أنت - المافيا)";
+                    } else if (playerRole === "الدكتور") {
+                        playerDiv.classList.add('doctor');
+                        playerDiv.textContent = player + " (أنت - الدكتور)";
+                    } else if (playerRole === "الشايب") {
+                        playerDiv.classList.add('sheriff');
+                        playerDiv.textContent = player + " (أنت - الشايب)";
+                    } else {
+                        playerDiv.classList.add('citizen');
+                        playerDiv.textContent = player + " (أنت - مواطن)";
+                    }
+                } else {
+                    playerDiv.textContent = player;
+                }
+                
+                hostPlayerList.appendChild(playerDiv);
+            });
+            
+            // تحديث حالة الغرفة
+            if (gameStatusElement) {
+                const playerCount = players.length;
+                let statusText = `👥 اللاعبون: ${playerCount}`;
+                
+                if (playerCount < 3) {
+                    statusText += " - ❌ يحتاج لاعبين أكثر!";
+                    startGameBtn.disabled = true;
+                    startGameBtn.style.opacity = "0.5";
+                } else {
+                    statusText += " - ✅ جاهز للبدأ!";
+                    startGameBtn.disabled = false;
+                    startGameBtn.style.opacity = "1";
+                }
+                
+                gameStatusElement.textContent = statusText;
+            }
+        }
+
+        // تحديث عرض الدور
+        function updateRoleDisplay() {
+            if (!playerRole) return;
+            
+            playerRoleDisplay.textContent = playerRole;
+            
+            // إضافة فئة CSS حسب الدور
+            roleRevealElement.className = 'role-reveal';
+            
+            if (playerRole === "المافيا") {
+                roleRevealElement.classList.add('mafia');
+                playerRoleDisplay.style.color = "#ff0000";
+            } else if (playerRole === "الدكتور") {
+                roleRevealElement.classList.add('doctor');
+                playerRoleDisplay.style.color = "#00ff00";
+            } else if (playerRole === "الشايب") {
+                roleRevealElement.classList.add('sheriff');
+                playerRoleDisplay.style.color = "#0000ff";
+            } else {
+                roleRevealElement.classList.add('citizen');
+                playerRoleDisplay.style.color = "#cccccc";
+            }
+        }
+
+        // توزيع الأدوار على جميع اللاعبين
+        function distributeRolesToAllPlayers(rolesArray) {
+            const roomRef = gameDatabase.ref('rooms/' + roomCode);
+            
+            const updates = {};
+            
+            // توزيع الأدوار على اللاعبين حسب ترتيبهم
+            players.forEach((player, index) => {
+                const role = rolesArray[index];
+                updates['players/' + player + '/role'] = role;
+                
+                // إذا كان هذا اللاعب هو أنت
+                if (player === playerName) {
+                    playerRole = role;
+                    updateRoleDisplay();
+                }
+            });
+            
+            // تحديث حالة اللعبة
+            updates.status = 'started';
+            updates.gameState = 'role_reveal';
+            updates.currentPhase = 'night';
+            
+            console.log("🎭 توزيع الأدوار:", updates);
+            
+            roomRef.update(updates)
+                .then(() => {
+                    console.log("✅ تم توزيع الأدوار بنجاح");
+                })
+                .catch(error => {
+                    console.error("❌ خطأ في توزيع الأدوار:", error);
+                });
+        }
+
+        // عرض صفحة معينة
+        function showPage(pageNumber) {
+            pages.forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            const targetPage = document.getElementById(`page${pageNumber}`);
+            if (targetPage) {
+                targetPage.classList.add('active');
+                currentPage = pageNumber;
+                
+                // تحديث البيانات عند تغيير الصفحات
+                if (pageNumber === 5 || pageNumber === 6) {
+                    playerNameDisplay.textContent = playerName;
+                    playerNameDisplay2.textContent = playerName;
+                }
+            }
+        }
+
+        // إعداد قائمة الاختيار
+        function setupSelectionList(element, playersList, callback) {
+            element.innerHTML = "";
+            
+            playersList.forEach(player => {
+                const button = document.createElement('button');
+                button.className = 'selection-btn';
+                button.textContent = player;
+                button.addEventListener('click', () => {
+                    callback(player);
+                });
+                element.appendChild(button);
+            });
+        }
+
+        // ==================== معالجات الأحداث ====================
+
+        // حفظ الاسم
         saveNameBtn.addEventListener('click', () => {
             if (playerNameInput.value.trim() === "") {
                 alert("الرجاء إدخال اسمك");
@@ -606,574 +795,501 @@ function generateRoles(playerCount) {
             playerName = playerNameInput.value.trim();
             showPage(2);
         });
-        
-        // الانضمام إلى غرفة
-        joinRoomBtn.addEventListener('click', () => {
-            showPage(4);
-        });
-        
+
         // إنشاء غرفة
-       createRoomBtn.addEventListener('click', () => {
-    // إنشاء رمز غرفة عشوائي
-    roomCode = Math.floor(10000 + Math.random() * 90000).toString();
-    roomCodeDisplay.textContent = roomCode;
-    
-    // إنشاء غرفة في Firebase
-    const roomRef = database.ref('rooms/' + roomCode);
-    
-    // إعداد بيانات الغرفة
-    roomRef.set({
-        host: playerName,
-        status: 'waiting',
-        players: {
-            [playerName]: {
-                name: playerName,
-                role: '',
-                isHost: true,
-                isReady: false
-            }
-        },
-        gameState: 'lobby'
-    });
-    
-    // الاستماع للتغييرات في الغرفة
-    roomRef.on('value', (snapshot) => {
-        const roomData = snapshot.val();
-        if (roomData) {
-            players = Object.values(roomData.players).map(p => p.name);
-            updatePlayerList();
+        createRoomBtn.addEventListener('click', () => {
+            // إنشاء رمز غرفة عشوائي
+            roomCode = Math.floor(10000 + Math.random() * 90000).toString();
+            roomCodeDisplay.textContent = roomCode;
             
-            // إذا بدأ المضيف اللعبة
-            if (roomData.status === 'started') {
-                // توزيع الأدوار
-                distributeRoles();
-                showPage(5);
-            }
-        }
-    });
-    
-    showPage(3);
-});
-       connectToRoomBtn.addEventListener('click', () => {
-    if (roomCodeInput.value.trim() === "") {
-        alert("الرجاء إدخال رمز الغرفة");
-        return;
-    }
-    
-    roomCode = roomCodeInput.value.trim();
-    
-    // التحقق من وجود الغرفة
-    const roomRef = database.ref('rooms/' + roomCode);
-    roomRef.once('value').then((snapshot) => {
-        if (snapshot.exists()) {
-            // الانضمام للغرفة
-            const playerData = {
-                name: playerName,
-                role: '',
-                isHost: false,
-                isReady: false
-            };
+            console.log("🚀 إنشاء غرفة جديدة برمز:", roomCode);
             
-            roomRef.child('players/' + playerName).set(playerData);
+            // إنشاء غرفة في قاعدة البيانات
+            const roomRef = gameDatabase.ref('rooms/' + roomCode);
             
-            // الاستماع للتحديثات
-            roomRef.on('value', (snapshot) => {
-                const roomData = snapshot.val();
-                if (roomData) {
-                    players = Object.values(roomData.players).map(p => p.name);
-                    
-                    // إذا بدأت اللعبة
-                    if (roomData.status === 'started') {
-                        // الحصول على دورك
-                        playerRole = roomData.players[playerName]?.role || '';
-                        playerRoleDisplay.textContent = playerRole;
-                        playerNameDisplay.textContent = playerName;
-                        playerNameDisplay2.textContent = playerName;
-                        showPage(5);
+            // إعداد بيانات الغرفة
+            const roomData = {
+                host: playerName,
+                status: 'waiting',
+                gameState: 'lobby',
+                created: Date.now(),
+                players: {
+                    [playerName]: {
+                        name: playerName,
+                        role: '',
+                        isHost: true,
+                        isReady: false,
+                        joined: Date.now()
                     }
                 }
-            });
-            
-            alert("تم الانضمام للغرفة بنجاح!");
-            showPage(3); // انتقل لصفحة الانتظار
-        } else {
-            alert("الغرفة غير موجودة!");
-        }
-    });
-});
-        
-        // بدء اللعبة (للمضيف)
-    startGameBtn.addEventListener('click', () => {
-    if (players.length < 3) {
-        alert("يحتاج 3 لاعبين على الأقل لبدء اللعبة!");
-        return;
-    }
-    
-    // إنشاء الأدوار بناءً على عدد اللاعبين الحقيقي
-    const roleList = generateRoles(players.length);
-    
-    // خلطها عشوائياً
-    const shuffledRoles = [...roleList].sort(() => Math.random() - 0.5);
-    
-    // توزيع الأدوار على الجميع
-    distributeRolesToAllPlayers(shuffledRoles);
-    
-    // توجيه الجميع لصفحة كشف الأدوار
-    const roomRef = database.ref('rooms/' + roomCode);
-    roomRef.update({
-        status: 'started',
-        gameState: 'role_reveal'
-    });
-    
-    // الانتقال للصفحة 5
-    showPage(5);
-});
-        
-        // الانتقال إلى كشف الشخصية
-        nextToRoleBtn.addEventListener('click', () => {
-            showPage(6);
-        });
-        
-        // الانتقال إلى الليل
-        nextToNightBtn.addEventListener('click', () => {
-            // في التطبيق الحقيقي، هنا سيتم الانتقال عندما ينتهي الجميع
-            showPage(7);
-        });
-        
-        // بدء الليل
-        startNightBtfunctionn.addEventListener('click', () => {
-            // إذا كان اللعب هو المافيا، يظهر له صفحة اختيار الضحية
-            if (playerRole === "المافيا") {
-                gameState.isMafia = true;
-                setupMafiaSelection();
-                showPage(8);
-            } else {
-                // إذا لم يكن مافيا، ينتقل مباشرة إلى صفحة الدكتور
-                showPage(9);
-            }
-        });
-        
-        // الانتقال إلى دور الدكتور
-        nextToDoctorBtn.addEventListener('click', () => {
-            // إذا كان اللعب هو الدكتور، يظهر له صفحة الاختيار
-            if (playerRole === "الدكتور") {
-                setupDoctorSelection();
-                showPage(10);
-            } else {
-                // إذا لم يكن دكتور، ينتقل إلى دور الشايب
-                showPage(11);
-            }
-        });
-        
-        // الانتقال إلى دور الشايب
-        nextToSheriffBtn.addEventListener('click', () => {
-            // إذا كان اللعب هو الشايب، يظهر له صفحة الاختيار
-            if (playerRole === "الشايب") {
-                setupSheriffSelection();
-                showPage(12);
-            } else {
-                // إذا لم يكن شايب، ينتقل إلى التصويت
-                startVoting();
-            }
-        });
-        
-        // لعبة جديدة
-        newGameBtn.addEventListener('click', () => {
-            // إعادة تعيين اللعبة
-            resetGame();
-            showPage(1);
-        });
-    
-        
-       // دالة توزيع الأدوار
-function distributeRoles() {
-    if (players.length < 3) {
-        alert("يحتاج 3 لاعبين على الأقل لبدء اللعبة!");
-        return;
-    }
-    
-    // إنشاء الأدوار بناءً على عدد اللاعبين
-    const roleList = generateRoles(players.length);
-    
-    // خلط الأدوار عشوائياً
-    const shuffledRoles = [...roleList].sort(() => Math.random() - 0.5);
-    
-    // في تطبيق Firebase الحقيقي، سيتم حفظ الأدوار في الداتابيز
-    // هنا لمحاكاة التوزيع
-    const randomIndex = players.indexOf(playerName);
-    if (randomIndex !== -1) {
-        playerRole = shuffledRoles[randomIndex];
-    } else {
-        // إذا لم يكن اسمك في القائمة (حالة طارئة)
-        const randomRoleIndex = Math.floor(Math.random() * shuffledRoles.length);
-        playerRole = shuffledRoles[randomRoleIndex];
-    }
-    
-    // تحديث عرض الدور
-    playerRoleDisplay.textContent = playerRole;
-    playerNameDisplay.textContent = playerName;
-    playerNameDisplay2.textContent = playerName;
-    
-    // إذا كنت تستخدم Firebase، هنا ترسل الأدوار للجميع
-    if (roomCode) {
-        // كود لإرسال الأدوار لجميع اللاعبين
-        distributeRolesToAllPlayers(shuffledRoles);
-    }
-}
-        
-        // إعداد قائمة اختيار المافيا
-        function setupMafiaSelection() {
-            mafiaSelection.innerHTML = "";
-            
-            // إنشاء قائمة باللاعبين باستثناء المافيا نفسه
-            const otherPlayers = players.filter(player => player !== playerName);
-            
-            otherPlayers.forEach(player => {
-                const button = document.createElement('button');
-                button.className = 'selection-btn';
-                button.textContent = player;
-                button.addEventListener('click', () => {
-                    gameState.mafiaChoice = player;
-                    alert("لقد اخترت " + player + " كضحية.");
-                    
-                    // الانتقال إلى دور الدكتور
-                    showPage(9);
-                });
-                mafiaSelection.appendChild(button);
-            });
-        }
-        
-        // إعداد قائمة اختيار الدكتور
-        function setupDoctorSelection() {
-            doctorSelection.innerHTML = "";
-            
-            // إنشاء قائمة بجميع اللاعبين
-            players.forEach(player => {
-                const button = document.createElement('button');
-                button.className = 'selection-btn';
-                button.textContent = player;
-                button.addEventListener('click', () => {
-                    gameState.doctorChoice = player;
-                    alert("لقد اخترت حماية " + player + ".");
-                    
-                    // الانتقال إلى دور الشايب
-                    showPage(11);
-                });
-                doctorSelection.appendChild(button);
-            });
-        }
-        
-        // إعداد قائمة اختيار الشايب
-        function setupSheriffSelection() {
-            sheriffSelection.innerHTML = "";
-            
-            // إنشاء قائمة باللاعبين
-            players.forEach(player => {
-                const button = document.createElement('button');
-                button.className = 'selection-btn';
-                button.textContent = player;
-                button.addEventListener('click', () => {
-                    gameState.sheriffChoice = player;
-                    
-                    // في اللعبة الحقيقية، الشايب يعرف إذا كان الشخص مافيا أم لا
-                    const isMafia = Math.random() > 0.5; // عشوائي لأغراض العرض
-                    alert("لقد اخترت التحقق من " + player + ".\n" + 
-                          (isMafia ? "هذا الشخص هو المافيا!" : "هذا الشخص ليس مافيا."));
-                    
-                    // بدء التصويت
-                    startVoting();
-                });
-                sheriffSelection.appendChild(button);
-            });
-        }
-        
-        // بدء التصويت
-        function startVoting() {
-            // تعيين اسم المصوت
-            voterNameDisplay.textContent = playerName;
-            
-            // إعداد قائمة التصويت
-            setupVotingSelection();
-            
-            showPage(13);
-        }
-        
-        // إعداد قائمة التصويت
-        function setupVotingSelection() {
-            votingSelection.innerHTML = "";
-            
-            // إنشاء قائمة باللاعبين
-            players.forEach(player => {
-                const button = document.createElement('button');
-                button.className = 'selection-btn';
-                button.textContent = player;
-                button.addEventListener('click', () => {
-                    gameState.votes[playerName] = player;
-                    alert("لقد صوتت ضد " + player + ".");
-                    
-                    // محاكاة تصويت الآخرين
-                    simulateOtherVotes();
-                    
-                    // عرض النتيجة
-                    showResult();
-                });
-                votingSelection.appendChild(button);
-            });
-        }
-        
-        // محاكاة تصويت اللاعبين الآخرين
-        function simulateOtherVotes() {
-            const otherPlayers = players.filter(p => p !== playerName);
-            
-            otherPlayers.forEach(player => {
-                const randomPlayer = players[Math.floor(Math.random() * players.length)];
-                gameState.votes[player] = randomPlayer;
-            });
-        }
-        
-        // عرض نتيجة اللعبة
-        function showResult() {
-            // حساب الأصوات
-            const voteCount = {};
-            players.forEach(player => {
-                const votedPlayer = gameState.votes[player];
-                if (votedPlayer) {
-                    voteCount[votedPlayer] = (voteCount[votedPlayer] || 0) + 1;
-                }
-            });
-            
-            // العثور على اللاعب الأكثر تصويتًا
-            let maxVotes = 0;
-            let impostor = "";
-            
-            for (const [player, votes] of Object.entries(voteCount)) {
-                if (votes > maxVotes) {
-                    maxVotes = votes;
-                    impostor = player;
-                }
-            }
-            
-            // إذا لم يكن هناك أصوات، نختار عشوائيًا
-            if (impostor === "") {
-                impostor = players[Math.floor(Math.random() * players.length)];
-            }
-            
-            // عرض النتيجة
-            impostorNameDisplay.textContent = impostor;
-            showPage(14);
-        }
-        
-     // في دالة updatePlayerList أضف:
-function updatePlayerList() {
-    hostPlayerList.innerHTML = "";
-    
-    players.forEach(player => {
-        const playerDiv = document.createElement('div');
-        playerDiv.className = 'player';
-        
-        // إضافة أيقونة صغيرة إذا كان المضيف
-        playerDiv.textContent = player + (player === playerName ? " (أنت)" : "");
-        
-        hostPlayerList.appendChild(playerDiv);
-    });
-    
-    // تحديث حالة الغرفة
-    const statusElement = document.querySelector('.game-status');
-    if (statusElement) {
-        const playerCount = players.length;
-        let statusText = `اللاعبون: ${playerCount}`;
-        
-        if (playerCount < 3) {
-            statusText += " - يحتاج لاعبين أكثر!";
-        } else {
-            statusText += " - جاهز للبدأ!";
-        }
-        
-        statusElement.textContent = statusText;
-        
-        // تعطيل زر البدء إذا كان عدد اللاعبين أقل من 3
-        startGameBtn.disabled = playerCount < 3;
-    }
-}
-        
-        // إعادة تعيين اللعبة
-        function resetGame() {
-            playerName = "";
-            playerRole = "";
-            roomCode = "";
-            players = [];
-            gameState = {
-                mafiaChoice: "",
-                doctorChoice: "",
-                sheriffChoice: "",
-                votes: {},
-                isMafia: false
             };
             
-            playerNameInput.value = "";
-            roomCodeInput.value = "";
-        }
+            // حفظ الغرفة
+            roomRef.set(roomData)
+                .then(() => {
+                    console.log("✅ تم إنشاء الغرفة بنجاح");
+                    
+                    // الاستماع للتحديثات في الغرفة
+                    roomRef.on('value', (snapshot) => {
+                        const roomData = snapshot.val();
+                        if (roomData) {
+                            console.log("📡 تحديث الغرفة:", roomData);
+                            
+                            // تحديث قائمة اللاعبين
+                            if (roomData.players) {
+                                players = Object.keys(roomData.players);
+                                updatePlayerList();
+                            }
+                            
+                            // إذا بدأت اللعبة
+                            if (roomData.status === 'started') {
+                                // الحصول على دوري
+                                const myData = roomData.players[playerName];
+                                if (myData && myData.role) {
+                                    playerRole = myData.role;
+                                    updateRoleDisplay();
+                                }
+                                
+                                // الانتقال لصفحة الدور
+                                setTimeout(() => {
+                                    showPage(5);
+                                }, 500);
+                            }
+                        }
+                    });
+                    
+                    players = [playerName];
+                    updatePlayerList();
+                    showPage(3);
+                })
+                .catch(error => {
+                    console.error("❌ خطأ في إنشاء الغرفة:", error);
+                    alert("حدث خطأ في إنشاء الغرفة");
+                });
+        });
+
+        // الانضمام للغرفة
+        connectToRoomBtn.addEventListener('click', () => {
+            if (roomCodeInput.value.trim() === "") {
+                alert("الرجاء إدخال رمز الغرفة");
+                return;
+            }
+            
+            roomCode = roomCodeInput.value.trim();
+            
+            console.log("🔍 محاولة الانضمام للغرفة:", roomCode);
+            
+            const roomRef = gameDatabase.ref('rooms/' + roomCode);
+            
+            // التحقق من وجود الغرفة
+            roomRef.once('value')
+                .then((snapshot) => {
+                    const roomData = snapshot.val();
+                    if (roomData) {
+                        console.log("✅ تم العثور على الغرفة:", roomData);
+                        
+                        // الانضمام للغرفة
+                        const playerData = {
+                            name: playerName,
+                            role: '',
+                            isHost: false,
+                            isReady: false,
+                            joined: Date.now()
+                        };
+                        
+                        roomRef.child('players/' + playerName).set(playerData)
+                            .then(() => {
+                                console.log("✅ تم الانضمام للغرفة بنجاح!");
+                                
+                                // الاستماع للتحديثات
+                                roomRef.on('value', (snapshot) => {
+                                    const updatedData = snapshot.val();
+                                    if (updatedData) {
+                                        console.log("📡 تحديث الغرفة:", updatedData);
+                                        
+                                        // تحديث قائمة اللاعبين
+                                        if (updatedData.players) {
+                                            players = Object.keys(updatedData.players);
+                                            updatePlayerList();
+                                        }
+                                        
+                                        // إذا بدأت اللعبة
+                                        if (updatedData.status === 'started') {
+                                            // الحصول على دوري
+                                            const myData = updatedData.players[playerName];
+                                            if (myData && myData.role) {
+                                                playerRole = myData.role;
+                                                updateRoleDisplay();
+                                            }
+                                            
+                                            // الانتقال لصفحة الدور
+                                            setTimeout(() => {
+                                                showPage(5);
+                                            }, 500);
+                                        }
+                                    }
+                                });
+                                
+                                alert("✅ تم الانضمام للغرفة بنجاح!");
+                                showPage(3);
+                            });
+                    } else {
+                        alert("❌ الغرفة غير موجودة!");
+                    }
+                })
+                .catch(error => {
+                    console.error("❌ خطأ في الانضمام للغرفة:", error);
+                    alert("حدث خطأ في الانضمام للغرفة");
+                });
+        });
+
+        // بدء اللعبة
+        startGameBtn.addEventListener('click', () => {
+            if (players.length < 3) {
+                alert("يحتاج 3 لاعبين على الأقل لبدء اللعبة!");
+                return;
+            }
+            
+         console.log("🎮 بدء اللعبة مع اللاعبين:", players);
+                 // إنشاء الأدوار بناءً على عدد اللاعبين
+        const roleList = generateRoles(players.length);
+        const shuffledRoles = [...roleList].sort(() => Math.random() - 0.5);
         
-        // دالة عرض الصفحة المحددة
-        function showPage(pageNumber) {
-            pages.forEach(page => {
-                page.classList.remove('active');
+        console.log("🎭 الأدوار المخلوطة:", shuffledRoles);
+        
+        const roomRef = gameDatabase.ref('rooms/' + roomCode);
+        
+        // توزيع الأدوار
+        const updates = {};
+        players.forEach((player, index) => {
+            const role = shuffledRoles[index];
+            updates['players/' + player + '/role'] = role;
+            
+            // إذا كنت أنا، احفظ دوري
+            if (player === playerName) {
+                playerRole = role;
+                updateRoleDisplay();
+            }
+        });
+        
+        // تحديث حالة اللعبة
+        updates.status = 'started';
+        updates.gameState = 'role_reveal';
+        updates.currentPhase = 'night';
+        
+        roomRef.update(updates)
+            .then(() => {
+                console.log("✅ بدأت اللعبة بنجاح");
+                showPage(5);
+            })
+            .catch(error => {
+                console.error("❌ خطأ في بدء اللعبة:", error);
+                alert("حدث خطأ في بدء اللعبة");
             });
-            
-            document.getElementById(`page${pageNumber}`).classList.add('active');
-            currentPage = pageNumber;
-        }
-        
-        // للاختبار: السماح بالضغط على Enter في حقل الاسم
-        playerNameInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                saveNameBtn.click();
-            }
-        });
-        
-        // للاختبار: السماح بالضغط على Enter في حقل رمز الغرفة
-        roomCodeInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                connectToRoomBtn.click();
-            }
-        });
-        
-        // تهيئة أولية: إضافة بعض اللاعبين الافتراضيين للعرض
-        window.addEventListener('DOMContentLoaded', () => {
-            // إضافة لاعبين افتراضيين للعرض
-            players = ["أحمد", "محمد", "فاطمة", "خالد", "سارة"];
-            
-            // عرض تأثيرات دم إضافية
-            addBloodEffects();
-        });
-        
-        // إضافة تأثيرات دم إضافية
-        function addBloodEffects() {
-            const container = document.querySelector('.container');
-            
-            for (let i = 0; i < 5; i++) {
-                const drip = document.createElement('div');
-                drip.className = 'blood-drip';
-                drip.style.left = Math.random() * 100 + '%';
-                drip.style.top = Math.random() * 50 + '%';
-                drip.style.height = (20 + Math.random() * 50) + 'px';
-                drip.style.opacity = 0.3 + Math.random() * 0.4;
-                container.appendChild(drip);
-            }
-        }
-        // ضع هذا الكود في بداية الـ <script> tag
-// استبدل هذه القيم بمعلومات مشروعك من Firebase
+    });
 
+    // الانتقال إلى كشف الشخصية
+    nextToRoleBtn.addEventListener('click', () => {
+        showPage(6);
+    });
 
-function leaveRoom() {
-    if (roomCode) {
-        const roomRef = database.ref('rooms/' + roomCode);
-        roomRef.child('players/' + playerName).remove();
-        
-        // التحقق إذا كانت الغرفة فارغة لحذفها
-        roomRef.once('value').then((snapshot) => {
-            const roomData = snapshot.val();
-            if (roomData && Object.keys(roomData.players).length === 0) {
-                roomRef.remove();
-            }
-        });
-    }
-}
-// دالة توزيع الأدوار
-function distributeRoles() {
-    if (players.length < 3) {
-        alert("يحتاج 3 لاعبين على الأقل لبدء اللعبة!");
-        return;
-    }
-    
-    // إنشاء الأدوار بناءً على عدد اللاعبين
-    const roleList = generateRoles(players.length);
-    
-    // خلط الأدوار عشوائياً
-    const shuffledRoles = [...roleList].sort(() => Math.random() - 0.5);
-    
-    // في تطبيق Firebase الحقيقي، سيتم حفظ الأدوار في الداتابيز
-    // هنا لمحاكاة التوزيع
-    const randomIndex = players.indexOf(playerName);
-    if (randomIndex !== -1) {
-        playerRole = shuffledRoles[randomIndex];
-    } else {
-        // إذا لم يكن اسمك في القائمة (حالة طارئة)
-        const randomRoleIndex = Math.floor(Math.random() * shuffledRoles.length);
-        playerRole = shuffledRoles[randomRoleIndex];
-    }
-    
-    // تحديث عرض الدور
-    playerRoleDisplay.textContent = playerRole;
-    playerNameDisplay.textContent = playerName;
-    playerNameDisplay2.textContent = playerName;
-    
-    // إذا كنت تستخدم Firebase، هنا ترسل الأدوار للجميع
-    if (roomCode) {
-        // كود لإرسال الأدوار لجميع اللاعبين
-        distributeRolesToAllPlayers(shuffledRoles);
-    }
-}
-// دالة لتوزيع الأدوار على جميع اللاعبين
-function distributeRolesToAllPlayers(rolesArray) {
-    const roomRef = database.ref('rooms/' + roomCode);
-    
-    // توزيع الأدوار على اللاعبين حسب ترتيبهم
-    players.forEach((player, index) => {
-        const role = rolesArray[index];
-        
-        // تحديث دور اللاعب في قاعدة البيانات
-        roomRef.child('players/' + player + '/role').set(role);
-        
-        // إذا كان هذا اللاعب هو أنت
-        if (player === playerName) {
-            playerRole = role;
-            playerRoleDisplay.textContent = role;
+    // الانتقال إلى الليل
+    nextToNightBtn.addEventListener('click', () => {
+        showPage(7);
+    });
+
+    // بدء الليل
+    startNightBtn.addEventListener('click', () => {
+        // إذا كان اللعب هو المافيا، يظهر له صفحة اختيار الضحية
+        if (playerRole === "المافيا") {
+            gameState.isMafia = true;
+            setupMafiaSelection();
+            showPage(8);
+        } else {
+            // إذا لم يكن مافيا، ينتقل مباشرة إلى صفحة الدكتور
+            showPage(9);
         }
     });
-    
-    // تحديث حالة اللعبة
-    roomRef.update({
-        gameState: 'roles_distributed',
-        roles: rolesArray,
-        currentPhase: 'night'
-    });
-}
-// استدعاء الدالة عند إغلاق الصفحة
-window.addEventListener('beforeunload', leaveRoom);
-// في مكان عرض الدور، أضف فئة حسب الدور
-function updateRoleDisplay() {
-    playerRoleDisplay.textContent = playerRole;
-    
-    // إضافة فئة CSS حسب الدور
-    const roleElement = document.querySelector('.role-reveal');
-    roleElement.className = 'role-reveal'; // إعادة تعيين
-    
-    // إضافة الفئة المناسبة
-    if (playerRole === "المافيا") {
-        roleElement.classList.add('mafia');
-    } else if (playerRole === "الدكتور") {
-        roleElement.classList.add('doctor');
-    } else if (playerRole === "الشايب") {
-        roleElement.classList.add('sheriff');
-    } else {
-        roleElement.classList.add('citizen');
+
+    // إعداد قائمة اختيار المافيا
+    function setupMafiaSelection() {
+        mafiaSelection.innerHTML = "";
+        
+        // إنشاء قائمة باللاعبين باستثناء المافيا نفسه
+        const otherPlayers = players.filter(player => player !== playerName);
+        
+        if (otherPlayers.length === 0) {
+            mafiaSelection.innerHTML = "<p>لا يوجد لاعبين آخرين للاختيار!</p>";
+            return;
+        }
+        
+        otherPlayers.forEach(player => {
+            const button = document.createElement('button');
+            button.className = 'selection-btn';
+            button.textContent = player;
+            button.addEventListener('click', () => {
+                gameState.mafiaChoice = player;
+                alert("لقد اخترت " + player + " كضحية.");
+                
+                // الانتقال إلى دور الدكتور
+                showPage(9);
+            });
+            mafiaSelection.appendChild(button);
+        });
     }
-}
-// عند التصويت، تأكد أن المافيا واحد فقط
-function checkRoles() {
-    const mafiaPlayers = players.filter(p => {
-        // في التطبيق الحقيقي، ستتحقق من قاعدة البيانات
-        return p.role === "المافيا";
+
+    // الانتقال إلى دور الدكتور
+    nextToDoctorBtn.addEventListener('click', () => {
+        // إذا كان اللعب هو الدكتور، يظهر له صفحة الاختيار
+        if (playerRole === "الدكتور") {
+            setupDoctorSelection();
+            showPage(10);
+        } else {
+            // إذا لم يكن دكتور، ينتقل إلى دور الشايب
+            showPage(11);
+        }
     });
-    
-    if (mafiaPlayers.length > 1) {
-        console.error("خطأ: يوجد أكثر من مافيا واحد!");
-        return false;
+
+    // إعداد قائمة اختيار الدكتور
+    function setupDoctorSelection() {
+        doctorSelection.innerHTML = "";
+        
+        if (players.length === 0) {
+            doctorSelection.innerHTML = "<p>لا يوجد لاعبين للاختيار!</p>";
+            return;
+        }
+        
+        players.forEach(player => {
+            const button = document.createElement('button');
+            button.className = 'selection-btn';
+            button.textContent = player;
+            button.addEventListener('click', () => {
+                gameState.doctorChoice = player;
+                alert("لقد اخترت حماية " + player + ".");
+                
+                // الانتقال إلى دور الشايب
+                showPage(11);
+            });
+            doctorSelection.appendChild(button);
+        });
     }
-    
-    return true;
-}
-    </script>
-</body>
-</html>
+
+    // الانتقال إلى دور الشايب
+    nextToSheriffBtn.addEventListener('click', () => {
+        // إذا كان اللعب هو الشايب، يظهر له صفحة الاختيار
+        if (playerRole === "الشايب") {
+            setupSheriffSelection();
+            showPage(12);
+        } else {
+            // إذا لم يكن شايب، ينتقل إلى التصويت
+            startVoting();
+        }
+    });
+
+    // إعداد قائمة اختيار الشايب
+    function setupSheriffSelection() {
+        sheriffSelection.innerHTML = "";
+        
+        if (players.length === 0) {
+            sheriffSelection.innerHTML = "<p>لا يوجد لاعبين للاختيار!</p>";
+            return;
+        }
+        
+        players.forEach(player => {
+            const button = document.createElement('button');
+            button.className = 'selection-btn';
+            button.textContent = player;
+            button.addEventListener('click', () => {
+                gameState.sheriffChoice = player;
+                
+                // في اللعبة الحقيقية، الشايب يعرف إذا كان الشخص مافيا أم لا
+                const isMafia = Math.random() > 0.5; // عشوائي لأغراض العرض
+                alert("لقد اخترت التحقق من " + player + ".\n" + 
+                      (isMafia ? "هذا الشخص هو المافيا!" : "هذا الشخص ليس مافيا."));
+                
+                // بدء التصويت
+                startVoting();
+            });
+            sheriffSelection.appendChild(button);
+        });
+    }
+
+    // بدء التصويت
+    function startVoting() {
+        // تعيين اسم المصوت
+        voterNameDisplay.textContent = playerName;
+        
+        // إعداد قائمة التصويت
+        setupVotingSelection();
+        
+        showPage(13);
+    }
+
+    // إعداد قائمة التصويت
+    function setupVotingSelection() {
+        votingSelection.innerHTML = "";
+        
+        if (players.length === 0) {
+            votingSelection.innerHTML = "<p>لا يوجد لاعبين للتصويت!</p>";
+            return;
+        }
+        
+        players.forEach(player => {
+            if (player === playerName) return; // لا يمكن التصويت على نفسك
+            
+            const button = document.createElement('button');
+            button.className = 'selection-btn';
+            button.textContent = player;
+            button.addEventListener('click', () => {
+                gameState.votes[playerName] = player;
+                alert("لقد صوتت ضد " + player + ".");
+                
+                // محاكاة تصويت الآخرين
+                simulateOtherVotes();
+                
+                // عرض النتيجة
+                showResult();
+            });
+            votingSelection.appendChild(button);
+        });
+    }
+
+    // محاكاة تصويت اللاعبين الآخرين
+    function simulateOtherVotes() {
+        const otherPlayers = players.filter(p => p !== playerName);
+        
+        otherPlayers.forEach(player => {
+            const randomPlayer = players[Math.floor(Math.random() * players.length)];
+            gameState.votes[player] = randomPlayer;
+        });
+        
+        console.log("🗳️ الأصوات المحاكاة:", gameState.votes);
+    }
+
+    // عرض نتيجة اللعبة
+    function showResult() {
+        // حساب الأصوات
+        const voteCount = {};
+        players.forEach(player => {
+            const votedPlayer = gameState.votes[player];
+            if (votedPlayer) {
+                voteCount[votedPlayer] = (voteCount[votedPlayer] || 0) + 1;
+            }
+        });
+        
+        // العثور على اللاعب الأكثر تصويتًا
+        let maxVotes = 0;
+        let impostor = "";
+        
+        for (const [player, votes] of Object.entries(voteCount)) {
+            if (votes > maxVotes) {
+                maxVotes = votes;
+                impostor = player;
+            }
+        }
+        
+        // إذا لم يكن هناك أصوات، نختار عشوائيًا
+        if (impostor === "") {
+            impostor = players[Math.floor(Math.random() * players.length)];
+        }
+        
+        // عرض النتيجة
+        impostorNameDisplay.textContent = impostor;
+        showPage(14);
+    }
+
+    // لعبة جديدة
+    newGameBtn.addEventListener('click', () => {
+        // إعادة تعيين اللعبة
+        resetGame();
+        showPage(1);
+    });
+
+    // إعادة تعيين اللعبة
+    function resetGame() {
+        if (roomCode) {
+            const roomRef = gameDatabase.ref('rooms/' + roomCode);
+            roomRef.remove();
+        }
+        
+        playerName = "";
+        playerRole = "";
+        roomCode = "";
+        players = [];
+        gameState = {
+            mafiaChoice: "",
+            doctorChoice: "",
+            sheriffChoice: "",
+            votes: {},
+            isMafia: false
+        };
+        
+        playerNameInput.value = "";
+        roomCodeInput.value = "";
+        playerRoleDisplay.textContent = "المواطن";
+        roleRevealElement.className = 'role-reveal';
+        
+        updatePlayerList();
+        
+        console.log("🔄 تم إعادة تعيين اللعبة");
+    }
+
+    // للاختبار: السماح بالضغط على Enter في حقل الاسم
+    playerNameInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            saveNameBtn.click();
+        }
+    });
+
+    // للاختبار: السماح بالضغط على Enter في حقل رمز الغرفة
+    roomCodeInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            connectToRoomBtn.click();
+        }
+    });
+
+    // تهيئة أولية
+    window.addEventListener('DOMContentLoaded', () => {
+        // إضافة لاعبين افتراضيين للعرض
+        players = ["أحمد", "محمد", "فاطمة", "خالد", "سارة"];
+        
+        // عرض تأثيرات دم إضافية
+        addBloodEffects();
+        
+        console.log("🎮 لعبة المافيا جاهزة للتشغيل!");
+    });
+
+    // إضافة تأثيرات دم إضافية
+    function addBloodEffects() {
+        const container = document.querySelector('.container');
+        
+        for (let i = 0; i < 5; i++) {
+            const drip = document.createElement('div');
+            drip.className = 'blood-drip';
+            drip.style.left = Math.random() * 100 + '%';
+            drip.style.top = Math.random() * 50 + '%';
+            drip.style.height = (20 + Math.random() * 50) + 'px';
+            drip.style.opacity = 0.3 + Math.random() * 0.4;
+            container.appendChild(drip);
+        }
+    }
+
+    // دالة الخروج من الغرفة
+    function leaveRoom() {
+        if (roomCode) {
+            const roomRef = gameDatabase.ref('rooms/' + roomCode);
+            roomRef.child('players/' + playerName).remove();
+            
+            // التحقق إذا كانت الغرفة فارغة لحذفها
+            roomRef.once('value').then((snapshot) => {
+                const roomData = snapshot.val();
+                if (roomData && Object.keys(roomData.players).length === 0) {
+                    roomRef.remove();
+                }
+            });
+        }
+    }
+
+    // استدعاء الدالة عند إغلاق الصفحة
+    window.addEventListener('beforeunload', leaveRoom);
+</script>
