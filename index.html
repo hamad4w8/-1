@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لعبة المافيا</title>
+    <title>🔫 لعبة المافيا الحقيقية 🔫</title>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+    
     <style>
         * {
             margin: 0;
@@ -12,108 +17,45 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Arial', 'Tahoma', sans-serif;
             background: linear-gradient(135deg, #1a0000 0%, #330000 50%, #000000 100%);
             min-height: 100vh;
             color: #fff;
-            overflow-x: hidden;
-        }
-
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: 
-                radial-gradient(circle at 20% 80%, rgba(255, 0, 0, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(255, 0, 0, 0.1) 0%, transparent 50%);
-            pointer-events: none;
-            z-index: -1;
-        }
-
-        .blood-drops {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: -1;
-        }
-
-        .blood-drop {
-            position: absolute;
-            background: rgba(139, 0, 0, 0.3);
-            border-radius: 50% 50% 50% 0;
-            transform: rotate(45deg);
-            animation: drip 3s infinite ease-in-out;
-        }
-
-        @keyframes drip {
-            0% { opacity: 0; transform: translateY(-10px) rotate(45deg); }
-            50% { opacity: 1; }
-            100% { opacity: 0; transform: translateY(20px) rotate(45deg); }
+            text-align: center;
         }
 
         .container {
             max-width: 600px;
             margin: 0 auto;
             padding: 20px;
-            text-align: center;
-            position: relative;
-            z-index: 1;
         }
 
         .page {
             display: none;
-            animation: fadeIn 0.5s ease-in;
+            padding: 20px;
         }
 
         .page.active {
             display: block;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
         .title {
             font-size: 2.5em;
             margin-bottom: 30px;
-            text-shadow: 
-                0 0 10px rgba(255, 0, 0, 0.8),
-                0 0 20px rgba(255, 0, 0, 0.6),
-                0 0 30px rgba(255, 0, 0, 0.4);
-            background: linear-gradient(45deg, #ff0000, #8b0000, #ff0000);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            color: #ff0000;
+            text-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
         }
 
-        .input-container {
-            margin: 30px 0;
-        }
-
-        input[type="text"], input[type="number"] {
-            padding: 15px 20px;
+        input {
+            padding: 15px;
             font-size: 18px;
             border: 2px solid #8b0000;
             border-radius: 10px;
             background: rgba(20, 0, 0, 0.8);
             color: #fff;
-            width: 100%;
-            max-width: 300px;
+            width: 300px;
             text-align: center;
-            outline: none;
-            transition: all 0.3s ease;
-        }
-
-        input[type="text"]:focus, input[type="number"]:focus {
-            border-color: #ff0000;
-            box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+            margin: 10px;
         }
 
         .button {
@@ -127,29 +69,21 @@
             margin: 10px;
             min-width: 200px;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(255, 0, 0, 0.3);
         }
 
         .button:hover {
             background: linear-gradient(45deg, #ff0000, #ff4444);
-            box-shadow: 0 6px 20px rgba(255, 0, 0, 0.5);
             transform: translateY(-2px);
-        }
-
-        .button:active {
-            transform: translateY(0);
         }
 
         .room-code {
             font-size: 2em;
-            font-weight: bold;
             color: #ff0000;
             background: rgba(0, 0, 0, 0.5);
             padding: 20px;
             border-radius: 10px;
             margin: 20px 0;
             border: 2px solid #8b0000;
-            letter-spacing: 5px;
         }
 
         .player-list {
@@ -165,224 +99,104 @@
             margin: 10px 0;
             padding: 10px;
             border-radius: 5px;
-            border: 1px solid #ff0000;
         }
 
-        .role-card {
-            background: rgba(0, 0, 0, 0.8);
-            border: 2px solid #8b0000;
-            border-radius: 15px;
-            padding: 30px;
-            margin: 20px 0;
-            box-shadow: 0 10px 30px rgba(255, 0, 0, 0.2);
-        }
-
-        .role-title {
-            font-size: 2em;
-            margin-bottom: 15px;
-            color: #ff0000;
-            text-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
-        }
-
-        select {
-            padding: 10px 15px;
-            font-size: 16px;
-            border: 2px solid #8b0000;
+        .status {
+            background: rgba(0, 100, 0, 0.3);
+            padding: 10px;
             border-radius: 5px;
-            background: rgba(20, 0, 0, 0.8);
-            color: #fff;
-            width: 100%;
-            max-width: 300px;
             margin: 10px 0;
         }
 
-        .vote-result {
-            background: rgba(139, 0, 0, 0.2);
-            border: 2px solid #ff0000;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-
-        .status-message {
-            font-size: 1.2em;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 10px;
-            background: rgba(0, 0, 0, 0.5);
-            border: 1px solid #8b0000;
+        .error {
+            background: rgba(255, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
         }
     </style>
 </head>
 <body>
-    <div class="blood-drops" id="bloodDrops"></div>
-
     <div class="container">
         <!-- صفحة البداية -->
         <div class="page active" id="startPage">
             <h1 class="title">🔫 لعبة المافيا 🔫</h1>
-            <div class="input-container">
+            <div>
                 <h2>اكتب اسمك</h2>
                 <input type="text" id="playerName" placeholder="اسمك هنا...">
-                <br><br>
+                <br>
                 <button class="button" onclick="saveName()">التالي</button>
             </div>
         </div>
 
         <!-- صفحة الترحيب -->
         <div class="page" id="welcomePage">
-            <h1 class="title">اهلاً بك في لعبة المافيا</h1>
+            <h1 class="title">أهلاً بك في لعبة المافيا</h1>
             <h2 id="welcomeText"></h2>
             <button class="button" onclick="showJoinRoom()">انضم لغرفة</button>
             <button class="button" onclick="createRoom()">انشئ غرفة</button>
         </div>
 
-        <!-- صفحة انضمام لغرفة -->
+        <!-- صفحة انضمام للغرفة -->
         <div class="page" id="joinPage">
             <h1 class="title">انضمام لغرفة</h1>
-            <div class="input-container">
+            <div>
                 <h2>أدخل رقم الغرفة</h2>
-                <input type="number" id="roomCodeInput" placeholder="رقم الغرفة...">
-                <br><br>
+                <input type="text" id="roomCodeInput" placeholder="رقم الغرفة...">
+                <br>
                 <button class="button" onclick="joinRoom()">انضمام</button>
                 <button class="button" onclick="goBack('welcomePage')">رجوع</button>
+                <div id="joinStatus"></div>
             </div>
         </div>
 
-        <!-- صفحة إنشاء الغرفة -->
+        <!-- صفحة الغرفة -->
         <div class="page" id="roomPage">
             <h1 class="title">غرفتك جاهزة</h1>
-            <div class="room-code" id="roomCode"></div>
+            <div class="room-code" id="roomCodeDisplay"></div>
             <div class="player-list">
                 <h3>اللاعبين في الغرفة:</h3>
                 <div id="playersList"></div>
             </div>
-            <button class="button" onclick="startGame()">ابدأ</button>
-            <button class="button" onclick="goBack('welcomePage')">رجوع</button>
+            <button class="button" id="startButton" onclick="startGame()" style="display:none;">ابدأ اللعبة</button>
+            <button class="button" onclick="leaveRoom()">غادر الغرفة</button>
         </div>
 
-        <!-- صفحة اختيار الشخصيات -->
-        <div class="page" id="roleRevealPage">
-            <h1 class="title">دورك لرؤية شخصيتك</h1>
-            <h2 id="currentPlayerTurn"></h2>
-            <button class="button" onclick="showRole()">التالي</button>
-        </div>
-
-        <!-- صفحة عرض الدور -->
-        <div class="page" id="roleDisplayPage">
-            <h1 class="title">شخصيتك</h1>
-            <div class="role-card">
-                <div class="role-title" id="playerRole"></div>
-                <div id="roleDescription"></div>
-            </div>
-            <button class="button" onclick="nextPlayer()">التالي</button>
-        </div>
-
-        <!-- صفحة انتهاء اختيار الشخصيات -->
-        <div class="page" id="rolesCompletePage">
-            <h1 class="title">لقد انتهى اختيار الشخصيات</h1>
-            <div class="status-message">
-                جميع اللاعبين تعرفوا على أدوارهم
-            </div>
-            <button class="button" onclick="startNight()">ابدأ النوم</button>
-        </div>
-
-        <!-- مرحلة المافيا -->
-        <div class="page" id="mafiaPage">
-            <h1 class="title">المافيا، مَن تريد أن تذبح؟</h1>
-            <select id="mafiaTarget">
-                <option value="">اختر الضحية...</option>
-            </select>
-            <br><br>
-            <button class="button" onclick="mafiaKill()">اختيار</button>
-        </div>
-
-        <!-- تمرير للدكتور -->
-        <div class="page" id="passToDoctor">
-            <h1 class="title">أعط الجوال للدكتور</h1>
-            <button class="button" onclick="doctorTurn()">التالي</button>
-        </div>
-
-        <!-- مرحلة الدكتور -->
-        <div class="page" id="doctorPage">
-            <h1 class="title">الدكتور، اختر مَن تحمي</h1>
-            <select id="doctorTarget">
-                <option value="">اختر مَن تحمي...</option>
-            </select>
-            <br><br>
-            <button class="button" onclick="doctorHeal()">اختيار</button>
-        </div>
-
-        <!-- مرحلة الشايب -->
-        <div class="page" id="detectivePage">
-            <h1 class="title">الشايب، اختر مَن تسأل</h1>
-            <select id="detectiveTarget">
-                <option value="">اختر مَن تسأل...</option>
-            </select>
-            <br><br>
-            <button class="button" onclick="detectiveInvestigate()">اختيار</button>
-        </div>
-
-        <!-- مرحلة التصويت -->
-        <div class="page" id="votingPage">
-            <h1 class="title">دور التصويت</h1>
-            <h2 id="voterName"></h2>
-            <select id="voteTarget">
-                <option value="">اختر على مَن تصوت...</option>
-            </select>
-            <br><br>
-            <button class="button" onclick="castVote()">صوت</button>
-        </div>
-
-        <!-- النتيجة النهائية -->
-        <div class="page" id="resultPage">
-            <h1 class="title">انتهت اللعبة</h1>
-            <div class="vote-result" id="gameResult"></div>
-            <button class="button" onclick="newGame()">لعبة جديدة</button>
+        <!-- باقي الصفحات... -->
+        <div class="page" id="gamePage">
+            <h1 class="title">اللعبة بدأت!</h1>
+            <div id="gameContent"></div>
         </div>
     </div>
 
     <script>
-        // متغيرات اللعبة
+        // إعداد Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBOXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+            authDomain: "mafia-game-XXXX.firebaseapp.com",
+            databaseURL: "https://mafia-game-XXXX-default-rtdb.firebaseio.com",
+            projectId: "mafia-game-XXXX",
+            storageBucket: "mafia-game-XXXX.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:XXXXXXXXXXXXXX"
+        };
+
+        // في البداية، استخدم قاعدة بيانات وهمية محلية
+        let rooms = JSON.parse(localStorage.getItem('mafiaRooms') || '{}');
+        
         let playerName = '';
-        let roomCode = '';
-        let players = [];
-        let roles = ['المافيا', 'الدكتور', 'الشايب', 'مواطن'];
-        let playerRoles = {};
-        let currentPlayerIndex = 0;
-        let mafiaTarget = '';
-        let doctorTarget = '';
-        let detectiveTarget = '';
-        let votes = {};
-        let currentVoter = 0;
+        let currentRoomCode = '';
+        let isHost = false;
 
-        // إضافة قطرات الدم
-        function createBloodDrops() {
-            const bloodContainer = document.getElementById('bloodDrops');
-            for (let i = 0; i < 20; i++) {
-                const drop = document.createElement('div');
-                drop.className = 'blood-drop';
-                drop.style.left = Math.random() * 100 + '%';
-                drop.style.top = Math.random() * 100 + '%';
-                drop.style.width = (Math.random() * 8 + 4) + 'px';
-                drop.style.height = (Math.random() * 8 + 4) + 'px';
-                drop.style.animationDelay = Math.random() * 3 + 's';
-                bloodContainer.appendChild(drop);
-            }
-        }
-
-        // عرض الصفحة
         function showPage(pageId) {
             document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
             document.getElementById(pageId).classList.add('active');
         }
 
-        // حفظ الاسم
         function saveName() {
             const name = document.getElementById('playerName').value.trim();
             if (name) {
                 playerName = name;
-                localStorage.setItem('playerName', playerName);
                 document.getElementById('welcomeText').textContent = `مرحباً ${playerName}`;
                 showPage('welcomePage');
             } else {
@@ -390,310 +204,185 @@
             }
         }
 
-        // عرض صفحة الانضمام للغرفة
         function showJoinRoom() {
             showPage('joinPage');
         }
 
-        // إنشاء غرفة
         function createRoom() {
-            roomCode = Math.floor(10000 + Math.random() * 90000).toString();
-            document.getElementById('roomCode').textContent = roomCode;
-            players = [playerName];
-            updatePlayersList();
-            showPage('roomPage');
-        }
-
-        // الانضمام للغرفة
-        function joinRoom() {
-            const code = document.getElementById('roomCodeInput').value;
-            if (code && code.length === 5) {
-                roomCode = code;
-                // في تطبيق حقيقي، ستتصل بالخادم هنا
-                players = [playerName, 'لاعب آخر 1', 'لاعب آخر 2']; // محاكاة
-                updatePlayersList();
-                showPage('roomPage');
-            } else {
-                alert('يرجى إدخال رقم غرفة صحيح');
-            }
-        }
-
-        // تحديث قائمة اللاعبين
-        function updatePlayersList() {
-            const list = document.getElementById('playersList');
-            list.innerHTML = players.map(player => `<div class="player">${player}</div>`).join('');
-        }
-
-        // بدء اللعبة
-        function startGame() {
-            if (players.length < 4) {
-                alert('يجب أن يكون هناك على الأقل 4 لاعبين');
-                return;
-            }
-            assignRoles();
-            currentPlayerIndex = 0;
-            showPlayerTurn();
-        }
-
-        // توزيع الأدوار
-        function assignRoles() {
-            const shuffledRoles = [...roles];
-            // إضافة مواطنين إضافيين حسب عدد اللاعبين
-            while (shuffledRoles.length < players.length) {
-                shuffledRoles.push('مواطن');
-            }
+            currentRoomCode = Math.floor(10000 + Math.random() * 90000).toString();
+            isHost = true;
             
-            // خلط الأدوار
-            for (let i = shuffledRoles.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [shuffledRoles[i], shuffledRoles[j]] = [shuffledRoles[j], shuffledRoles[i]];
-            }
-
-            // توزيع الأدوار على اللاعبين
-            players.forEach((player, index) => {
-                playerRoles[player] = shuffledRoles[index];
-            });
-        }
-
-        // عرض دور اللاعب الحالي
-        function showPlayerTurn() {
-            const currentPlayer = players[currentPlayerIndex];
-            document.getElementById('currentPlayerTurn').textContent = `دورك يا ${currentPlayer} لتشوف شخصيتك`;
-            showPage('roleRevealPage');
-        }
-
-        // عرض الدور
-        function showRole() {
-            const currentPlayer = players[currentPlayerIndex];
-            const role = playerRoles[currentPlayer];
-            
-            document.getElementById('playerRole').textContent = `يا ${currentPlayer}, أنت ${role}`;
-            
-            // وصف الدور
-            const descriptions = {
-                'المافيا': 'هدفك هو القضاء على جميع المواطنين',
-                'الدكتور': 'يمكنك حماية لاعب واحد كل ليلة',
-                'الشايب': 'يمكنك السؤال عن هوية لاعب واحد كل ليلة',
-                'مواطن': 'هدفك هو العثور على المافيا والتخلص منه'
+            // إنشاء الغرفة
+            rooms[currentRoomCode] = {
+                host: playerName,
+                players: [playerName],
+                status: 'waiting',
+                created: Date.now()
             };
             
-            document.getElementById('roleDescription').textContent = descriptions[role];
-            showPage('roleDisplayPage');
-        }
-
-        // اللاعب التالي
-        function nextPlayer() {
-            currentPlayerIndex++;
-            if (currentPlayerIndex < players.length) {
-                showPlayerTurn();
-            } else {
-                showPage('rolesCompletePage');
-            }
-        }
-
-        // بدء مرحلة الليل
-        function startNight() {
-            setupMafiaTargets();
-            showPage('mafiaPage');
-        }
-
-        // إعداد قائمة أهداف المافيا
-        function setupMafiaTargets() {
-            const select = document.getElementById('mafiaTarget');
-            select.innerHTML = '<option value="">اختر الضحية...</option>';
+            saveRooms();
+            updateRoomDisplay();
+            showPage('roomPage');
             
-            players.forEach(player => {
-                if (playerRoles[player] !== 'المافيا') {
-                    const option = document.createElement('option');
-                    option.value = player;
-                    option.textContent = player;
-                    select.appendChild(option);
+            // مراقبة التحديثات
+            watchRoomUpdates();
+        }
+
+        function joinRoom() {
+            const code = document.getElementById('roomCodeInput').value.trim();
+            const statusDiv = document.getElementById('joinStatus');
+            
+            if (!code) {
+                statusDiv.innerHTML = '<div class="error">يرجى إدخال رقم الغرفة</div>';
+                return;
+            }
+
+            loadRooms();
+            
+            if (rooms[code]) {
+                currentRoomCode = code;
+                isHost = false;
+                
+                // إضافة اللاعب للغرفة
+                if (!rooms[code].players.includes(playerName)) {
+                    rooms[code].players.push(playerName);
+                    saveRooms();
                 }
-            });
-        }
-
-        // المافيا يقتل
-        function mafiaKill() {
-            mafiaTarget = document.getElementById('mafiaTarget').value;
-            if (mafiaTarget) {
-                showPage('passToDoctor');
-            } else {
-                alert('يرجى اختيار الضحية');
-            }
-        }
-
-        // دور الدكتور
-        function doctorTurn() {
-            setupDoctorTargets();
-            showPage('doctorPage');
-        }
-
-        // إعداد قائمة أهداف الدكتور
-        function setupDoctorTargets() {
-            const select = document.getElementById('doctorTarget');
-            select.innerHTML = '<option value="">اختر مَن تحمي...</option>';
-            
-            players.forEach(player => {
-                const option = document.createElement('option');
-                option.value = player;
-                option.textContent = player;
-                select.appendChild(option);
-            });
-        }
-
-        // الدكتور يحمي
-        function doctorHeal() {
-            doctorTarget = document.getElementById('doctorTarget').value;
-            if (doctorTarget) {
-                setupDetectiveTargets();
-                showPage('detectivePage');
-            } else {
-                alert('يرجى اختيار مَن تحمي');
-            }
-        }
-
-        // إعداد قائمة أهداف الشايب
-        function setupDetectiveTargets() {
-            const select = document.getElementById('detectiveTarget');
-            select.innerHTML = '<option value="">اختر مَن تسأل...</option>';
-            
-            players.forEach(player => {
-                const option = document.createElement('option');
-                option.value = player;
-                option.textContent = player;
-                select.appendChild(option);
-            });
-        }
-
-        // الشايب يحقق
-        function detectiveInvestigate() {
-            detectiveTarget = document.getElementById('detectiveTarget').value;
-            if (detectiveTarget) {
-                startVoting();
-            } else {
-                alert('يرجى اختيار مَن تسأل');
-            }
-        }
-
-        // بدء التصويت
-        function startVoting() {
-            currentVoter = 0;
-            votes = {};
-            showVotingTurn();
-        }
-
-        // عرض دور التصويت
-        function showVotingTurn() {
-            if (currentVoter < players.length) {
-                const voter = players[currentVoter];
-                document.getElementById('voterName').textContent = `يا ${voter}, اختر على مَن تصوت`;
                 
-                const select = document.getElementById('voteTarget');
-                select.innerHTML = '<option value="">اختر على مَن تصوت...</option>';
+                statusDiv.innerHTML = '<div class="status">تم الانضمام بنجاح!</div>';
+                updateRoomDisplay();
+                showPage('roomPage');
                 
-                players.forEach(player => {
-                    if (player !== voter) {
-                        const option = document.createElement('option');
-                        option.value = player;
-                        option.textContent = player;
-                        select.appendChild(option);
+                // مراقبة التحديثات
+                watchRoomUpdates();
+            } else {
+                statusDiv.innerHTML = '<div class="error">رقم الغرفة غير صحيح أو الغرفة غير موجودة</div>';
+            }
+        }
+
+        function updateRoomDisplay() {
+            document.getElementById('roomCodeDisplay').textContent = currentRoomCode;
+            
+            const room = rooms[currentRoomCode];
+            if (room) {
+                const playersList = document.getElementById('playersList');
+                playersList.innerHTML = room.players.map(player => 
+                    `<div class="player">${player} ${player === room.host ? '👑' : ''}</div>`
+                ).join('');
+                
+                // إظهار زر البداية للمضيف فقط
+                const startButton = document.getElementById('startButton');
+                if (isHost && room.players.length >= 3) {
+                    startButton.style.display = 'block';
+                } else {
+                    startButton.style.display = 'none';
+                }
+            }
+        }
+
+        function watchRoomUpdates() {
+            // مراقبة التحديثات كل ثانيتين
+            setInterval(() => {
+                if (currentRoomCode) {
+                    loadRooms();
+                    const room = rooms[currentRoomCode];
+                    if (room) {
+                        updateRoomDisplay();
                     }
-                });
-                
-                showPage('votingPage');
-            } else {
-                showResults();
-            }
-        }
-
-        // التصويت
-        function castVote() {
-            const vote = document.getElementById('voteTarget').value;
-            if (vote) {
-                const voter = players[currentVoter];
-                votes[voter] = vote;
-                currentVoter++;
-                showVotingTurn();
-            } else {
-                alert('يرجى اختيار على مَن تصوت');
-            }
-        }
-
-        // عرض النتائج
-        function showResults() {
-            // حساب الأصوات
-            const voteCount = {};
-            Object.values(votes).forEach(vote => {
-                voteCount[vote] = (voteCount[vote] || 0) + 1;
-            });
-
-            // العثور على الأكثر أصواتاً
-            let maxVotes = 0;
-            let eliminated = '';
-            Object.entries(voteCount).forEach(([player, count]) => {
-                if (count > maxVotes) {
-                    maxVotes = count;
-                    eliminated = player;
                 }
-            });
-
-            // تحديد النتيجة
-            let result = `تم التصويت على ${eliminated} وتم إقصاؤه من اللعبة.<br><br>`;
-            
-            if (mafiaTarget && mafiaTarget !== doctorTarget) {
-                result += `المافيا قتل ${mafiaTarget} في الليل.<br><br>`;
-            } else if (mafiaTarget === doctorTarget) {
-                result += `الدكتور حمى ${mafiaTarget} من المافيا!<br><br>`;
-            }
-
-            if (detectiveTarget) {
-                const targetRole = playerRoles[detectiveTarget];
-                result += `الشايب سأل عن ${detectiveTarget} وعلم أنه ${targetRole}.<br><br>`;
-            }
-
-            result += `الأدوار كانت:<br>`;
-            players.forEach(player => {
-                result += `${player}: ${playerRoles[player]}<br>`;
-            });
-
-            document.getElementById('gameResult').innerHTML = result;
-            showPage('resultPage');
+            }, 2000);
         }
 
-        // لعبة جديدة
-        function newGame() {
-            playerName = '';
-            roomCode = '';
-            players = [];
-            playerRoles = {};
-            currentPlayerIndex = 0;
-            mafiaTarget = '';
-            doctorTarget = '';
-            detectiveTarget = '';
-            votes = {};
-            currentVoter = 0;
+        function startGame() {
+            if (!isHost) return;
             
-            document.getElementById('playerName').value = '';
-            document.getElementById('roomCodeInput').value = '';
-            
-            showPage('startPage');
+            const room = rooms[currentRoomCode];
+            if (room && room.players.length >= 3) {
+                room.status = 'started';
+                saveRooms();
+                
+                document.getElementById('gameContent').innerHTML = 
+                    `<h2>اللعبة بدأت!</h2>
+                     <p>عدد اللاعبين: ${room.players.length}</p>
+                     <p>سيتم توزيع الأدوار...</p>`;
+                
+                showPage('gamePage');
+            }
         }
 
-        // رجوع
+        function leaveRoom() {
+            if (rooms[currentRoomCode]) {
+                const room = rooms[currentRoomCode];
+                room.players = room.players.filter(p => p !== playerName);
+                
+                if (room.players.length === 0) {
+                    delete rooms[currentRoomCode];
+                } else if (room.host === playerName && room.players.length > 0) {
+                    room.host = room.players[0];
+                }
+                
+                saveRooms();
+            }
+            
+            currentRoomCode = '';
+            isHost = false;
+            showPage('welcomePage');
+        }
+
         function goBack(pageId) {
             showPage(pageId);
         }
 
-        // تهيئة الصفحة
-        document.addEventListener('DOMContentLoaded', function() {
-            createBloodDrops();
+        function saveRooms() {
+            localStorage.setItem('mafiaRooms', JSON.stringify(rooms));
             
-            // استرجاع الاسم المحفوظ
-            const savedName = localStorage.getItem('playerName');
-            if (savedName) {
-                document.getElementById('playerName').value = savedName;
+            // محاولة مشاركة مع متصفحات أخرى (محدود)
+            try {
+                if (typeof BroadcastChannel !== 'undefined') {
+                    const channel = new BroadcastChannel('mafia-game');
+                    channel.postMessage({type: 'rooms-update', rooms: rooms});
+                }
+            } catch (e) {
+                console.log('BroadcastChannel غير مدعوم');
             }
-        });
+        }
+
+        function loadRooms() {
+            const stored = localStorage.getItem('mafiaRooms');
+            if (stored) {
+                rooms = JSON.parse(stored);
+                
+                // تنظيف الغرف القديمة (أكثر من ساعة)
+                const now = Date.now();
+                Object.keys(rooms).forEach(code => {
+                    if (now - rooms[code].created > 3600000) { // ساعة
+                        delete rooms[code];
+                    }
+                });
+                
+                saveRooms();
+            }
+        }
+
+        // مراقبة التحديثات من متصفحات أخرى
+        try {
+            if (typeof BroadcastChannel !== 'undefined') {
+                const channel = new BroadcastChannel('mafia-game');
+                channel.onmessage = function(event) {
+                    if (event.data.type === 'rooms-update') {
+                        rooms = event.data.rooms;
+                        if (currentRoomCode) {
+                            updateRoomDisplay();
+                        }
+                    }
+                };
+            }
+        } catch (e) {
+            console.log('BroadcastChannel غير مدعوم');
+        }
+
+        // تحميل الغرف عند بدء الصفحة
+        loadRooms();
     </script>
 </body>
 </html>
